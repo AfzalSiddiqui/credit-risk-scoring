@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-
 import joblib
 import pandas as pd
 
@@ -11,41 +10,41 @@ app = FastAPI()
 model = joblib.load("models/credit_risk_model.pkl")
 
 
-class CreditInput(BaseModel):
-    NumberOfOpenCreditLinesAndLoans: float
-    NumberOfTimes90DaysLate: float
-    NumberRealEstateLoansOrLines: float
-    # ... ALL columns
+# Get expected features from model
+expected_features = model.feature_names_in_
 
-    
+
+# Accept Any Inoput
+
+class CreditInput(BaseModel) :
+    data: dict
 
 
 @app.get("/")
 def home():
-    return {"message": "ML API Running"}
-
+    return { "message": "ML API Running"}
 
 @app.post("/predict")
-def predict(data: CreditInput):
+def predcit(payload: CreditInput):
+
     try:
-       df = pd.DataFrame([data.dict()])
+        input_data = payload.data
+
+        # Convert to DataFrame
+        df = pd.DataFrame([input_data])
+
+        for col in expected_features:
+            if col not in df.columns:
+                df[col] = 0
+
+
+        df = df[expected_features]
 
         prediction = model.predict_proba(df)[0][1]
 
-        return {"risk_score": float(prediction)}
+        return {
+            "risk_score": float(prediction)
+        }
     
-    pd.DataFrame([data.dict()])
-
     except Exception as e:
         return {"error": str(e)}
-
-    # Convert validated input → dataframe
-    df = pd.DataFrame([[data.age, data.DebtRatio, data.MonthlyIncome, data.NumberOfDependents]],
-                  columns=["age", "DebtRatio", "MonthlyIncome", "NumberOfDependents"])
-    
-    # Prediction
-    prediction = model.predict_proba(df)[0][1]
-
-    return {
-        "risk_score": float(prediction)
-    }
