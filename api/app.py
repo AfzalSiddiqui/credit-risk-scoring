@@ -24,8 +24,8 @@ class CreditInput(BaseModel) :
 def home():
     return { "message": "ML API Running"}
 
-@app.post("/predict")
-def predcit(payload: CreditInput):
+@app.post("/pre")
+def predict(payload: CreditInput):
 
     try:
         input_data = payload.data
