@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
 import pandas as pd
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 app = FastAPI()
@@ -17,18 +20,29 @@ expected_features = model.feature_names_in_
 # Accept Any Inoput
 
 class CreditInput(BaseModel) :
-    data: dict
+    age: float
+    DebtRatio: float
+    MonthlyIncome: float
+    NumberOfDependents: float
 
+
+
+def run_prediction(df):
+    return model.predict_proba(df)[0][1]
 
 @app.get("/")
 def home():
     return { "message": "ML API Running"}
 
-@app.post("/pre")
+
+@app.post("/predict")
 def predict(payload: CreditInput):
 
     try:
-        input_data = payload.data
+        input_data = payload.dict()
+
+        logging.info(f"Input: {input_data}")
+
 
         # Convert to DataFrame
         df = pd.DataFrame([input_data])
@@ -40,7 +54,8 @@ def predict(payload: CreditInput):
 
         df = df[expected_features]
 
-        prediction = model.predict_proba(df)[0][1]
+        prediction = run_prediction(df)
+
 
         return {
             "risk_score": float(prediction)
