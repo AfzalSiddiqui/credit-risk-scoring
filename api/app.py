@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 import logging
-
 from api.schemas import CreditInput, CreditResponse
-
 from api.services import run_prediction
 from api.database import conn
 
@@ -16,14 +14,20 @@ def home():
     return {"message": "ML API Running"}
 
 
-@app.post("/predict", response_model=CreditResponse)
+@app.post("/predict")
 def predict(payload: CreditInput):
+    try:
+        input_data = payload.dict()
+        result = run_prediction(input_data)
+        return CreditResponse(**result)
 
-    logging.info(f"Input: {payload.dict()}")
-
-    result = run_prediction(payload.dict())
-
-    return result
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }
+    
 
 @app.get("/predictions")
 def get_predictions():
